@@ -10,7 +10,8 @@ from simulation.datagen import rand_dataset
 from inference.em import EM, jcb_em_alg
 from utils.tree_utils import convert_networkx_to_dendropy
 
-from src.inference.em import em_alg, build_tree
+from inference.em import em_alg, build_tree
+
 
 class NJTestCase(unittest.TestCase):
 

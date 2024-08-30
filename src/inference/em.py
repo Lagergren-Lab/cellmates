@@ -92,7 +92,7 @@ def compute_l_trans_mat(l_trip, n_states) -> np.ndarray:
     a_ru = p_delta_trans_mat(n_states, l_trip[0])[:, :, 2, 2]
     a_uv = p_delta_trans_mat(n_states, l_trip[1])
     a_uw = p_delta_trans_mat(n_states, l_trip[2])
-    # results is state i, j, k -> x, y, z
+    # results is state (m-1) i, j, k -> (m) x, y, z
     trans_mat[...] = np.einsum('xi,yjxi,zkxi->ijkxyz', a_ru, a_uv, a_uw)
     return trans_mat
 
@@ -105,7 +105,9 @@ def compute_eps_start_prob(eps_trip, n_states):
 def compute_l_start_prob(l_trip, n_states):
     trip_start = np.empty((n_states,) * 3)
 
+    # transition from r -> u (fix r = 2)
     a_ru = p_delta_start_prob(n_states, l_trip[0])[:, 2]
+    # transition from u -> v, w
     a_uv = p_delta_start_prob(n_states, l_trip[1])
     a_uw = p_delta_start_prob(n_states, l_trip[2])
     # results is state i, j, k
@@ -114,6 +116,7 @@ def compute_l_start_prob(l_trip, n_states):
 
 
 def forward_pass(obs_vw, start_prob, trans_mat, log_emissions, eps=1e-5):
+    # transmat idx = (i, j, k, x, y, z) = (m-1, m)
     n_sites = obs_vw.shape[0]
     n_states = trans_mat.shape[0]
     alpha = np.empty((n_sites, n_states, n_states, n_states))
@@ -123,6 +126,7 @@ def forward_pass(obs_vw, start_prob, trans_mat, log_emissions, eps=1e-5):
     alpha[0] -= logsumexp(alpha[0])
 
     for m in range(1, n_sites):
+        # [ \sum_{x,y,z} alpha_{m-1}(x, y, z) p(i, j, k | x, y, z) ] p(y_m^{vw} | i, j, k)
         alpha[m, ...] = logsumexp(alpha[m - 1] +
                                   np.log(trans_mat),
                                   axis=(0, 1, 2)) + log_emissions[m, np.newaxis, ...]
@@ -155,7 +159,9 @@ def two_slice_marginals(obs_vw, theta: np.ndarray, n_states: int, jcb: bool = Fa
     n_sites = obs_vw.shape[0]
     # define start_probs and transitions depending on chosen model
     if jcb:
+        # start prob shape: (n_states, n_states, n_states)
         start_prob = compute_l_start_prob(theta, n_states)
+        # trans_mat shape: ((n_states,) * 6)
         trans_mat = compute_l_trans_mat(theta, n_states)
     else:
         start_prob = compute_eps_start_prob(theta, n_states)
@@ -292,17 +298,17 @@ Implementation of JCB EM algorithm in write-up
     """
     # params
     n_states = 7
-    l_init = 1.0
+    l_init = 1.
     n_sites, n_cells = obs.shape
-    l_hat = np.infty * np.ones((n_cells, n_cells))
+    l_hat = np.inf * np.ones((n_cells, n_cells))
     zero_tol = 1e-5  # saturation level when dp << d (changes are much more prevalent)
 
     # for each pair of cells
     counter = 0
     logging.debug(f'pairwise EM started: {comb(n_cells, 2)} pairs')
     for v, w in itertools.combinations(range(n_cells), r=2):
-        # initialize eps = (eps_ru, eps_uv, eps_uw)
-        l_i = np.random.uniform(0, 1 / (n_states - 1), size=3)
+        # initialize l = (l_ru, l_uv, l_uw)
+        l_i = np.array([l_init] * 3)
         # triplet state u, v, w
         convergence = False
         while not convergence:
@@ -324,9 +330,9 @@ Implementation of JCB EM algorithm in write-up
         counter += 1
         if counter % 10 == 0:
             logging.debug(f'{comb(n_cells, 2) - counter} pairs remaining...')
-        l_hat[v, w] = l_i[0]  # ctr distance is eps_ru (first of triplet)
+        l_hat[v, w] = l_i[0]  # ctr distance is l_ru (first of triplet)
 
-    return -l_hat
+    return l_hat
 
 
 def _build_tree_rec(dist: dict, otus: set, edges: set[tuple]):

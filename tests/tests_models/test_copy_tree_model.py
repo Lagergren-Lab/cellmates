@@ -2,7 +2,7 @@ import unittest
 
 import networkx as nx
 
-from src.models.copy_tree import CopyTree
+from models.copy_tree import CopyTree
 
 
 class CopyTreeTestCase(unittest.TestCase):
@@ -15,7 +15,7 @@ class CopyTreeTestCase(unittest.TestCase):
         tree.add_edge(0, 1)
         tree.add_edge(0, 2)
         tree.add_edge(2, 3)
-        copy_tree = CopyTree(N, M, A, true_tree=tree)
+        copy_tree = CopyTree(M, A, true_tree=tree)
 
         eps_a = 1.0
         eps_b = 20.0
@@ -28,7 +28,7 @@ class CopyTreeTestCase(unittest.TestCase):
         M = 50
         A = 3
         tree = nx.random_tree(N, create_using=nx.DiGraph)
-        copy_tree = CopyTree(N, M, A, true_tree=tree)
+        copy_tree = CopyTree(M, A, true_tree=tree)
 
         eps_a = 1.0
         eps_b = 20.0
@@ -42,7 +42,7 @@ class CopyTreeTestCase(unittest.TestCase):
         M = 50
         A = 3
         tree = nx.random_tree(N, create_using=nx.DiGraph)
-        copy_tree = CopyTree(N, M, A, true_tree=tree)
+        copy_tree = CopyTree(M, A, true_tree=tree)
 
         eps_a = 1.0
         eps_b = 20.0
@@ -54,4 +54,8 @@ class CopyTreeTestCase(unittest.TestCase):
         for u, v in tree.edges:
             for m in range(M):
                 if c[u, m] == 0:
-                    self.assertEqual(c[v, m], 0, msg=f"Parent node {u} copy number 0 at m {m} but child has {c[v, m]}")
+                    self.assertEqual(
+                        c[v, m],
+                        0,
+                        msg=f"Parent node {u} copy number 0 at m {m} but child has {c[v, m]}",
+                    )

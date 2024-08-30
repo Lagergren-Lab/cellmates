@@ -6,7 +6,9 @@ import networkx as nx
 from inference.em import em_alg, jcb_em_alg
 from models.copy_tree import CopyTree
 from models.observation_models.read_counts_models import QuadrupletSpecificPoissonModel
-from src.models.observation_models.normalized_read_counts_models import QuadrupletSpecificCellbaselineAndPrecisionModel
+from models.observation_models.normalized_read_counts_models import (
+    QuadrupletSpecificCellbaselineAndPrecisionModel,
+)
 import numpy as np
 
 from models.quadruplet import Quadruplet
