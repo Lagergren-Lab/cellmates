@@ -1,6 +1,4 @@
 import networkx as nx
-# import matplotlib.pyplot as plt
-# import pydot
 
 from networkx.drawing.nx_pydot import graphviz_layout
 

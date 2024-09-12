@@ -2,7 +2,7 @@ import unittest
 
 import numpy as np
 
-from src.models.urn_observational_model import UrnModel
+from models.observation_models.urn_observational_model import UrnModel
 
 
 class UrnModelTestCase(unittest.TestCase):

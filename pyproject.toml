@@ -1,0 +1,17 @@
+# [project]
+# see https://peps.python.org/pep-0621/
+
+[tool.poetry]
+# see https://python-poetry.org/docs/pyproject/
+name = "Cellmates"
+version = "0.1"
+description = "Single-cell tree reconstruction with EM centroid-to-root distances."
+authors = ["Vittorio Zampinetti <vz@kth.se>", "Harald Melin <haraldme@kth.se>"]
+readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+
+[tool.pytest.ini_options]
+pythonpath = [
+  "src"
+]
