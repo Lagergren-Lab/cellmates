@@ -1,17 +1,32 @@
 # Pycharm stuff
-
 .idea/*
 **/__pycache__/*
 *.log
 .DS_Store
-# notes
+
+# Notes
 notes.md
+
+# Images
 /img/
-# output dirs
+
+# Output directories
 *_out
 **/output/
+
+# Virtual environments
 /venv/
+
+# Build artifacts
 /build/
+*.egg-info/
+dist/
+
+# Data directories
 /data/
-# snakemake dir
+
+# Snakemake directory
 **/.snakemake/
+
+# Pytest cache
+.pytest_cache/

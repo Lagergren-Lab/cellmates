@@ -1,2 +1,0 @@
-[console_scripts]
-cellmates = cellmates.bin.core:main

@@ -1,50 +1,11 @@
 """
 Utils for HMM functions (forward, backward, viterbi, etc.)
 """
-from importlib.metadata import distributions
-
 import numpy as np
 import scipy.special as sp
 
 from pomegranate.hmm import DenseHMM
 from pomegranate.distributions import Normal
-from cellmates.utils.math_utils import l_from_p
-
-
-# wrapper class, parametrized by triplet probs eps_ru, eps_rv, eps_rw
-# UNUSED CURRENTLY
-class TripHMM:
-    def __init__(self, n_states, obs_model: str, eps: tuple = None, lengths: tuple | None = None):
-        self.n_states = n_states
-        self.obs_model = obs_model
-        self.eps = eps
-        self.lengths = lengths
-        # validata input
-        if eps is None and lengths is None:
-            raise ValueError("Either eps or lengths must be provided")
-        if eps is not None and lengths is not None:
-            raise ValueError("Only one of eps or lengths must be provided")
-        self.hmm = self._build_hmm()
-
-    def _build_hmm(self):
-        # convert lengths to eps if needed
-        if self.eps is None and self.lengths is not None:
-            self.eps = l_from_p(self.lengths, n_states=self.n_states)
-
-    def forward_backward(self, X, alg='pomegranate'):
-        log_emissions = self.compute_log_emissions(X)
-        if alg == 'pomegranate':
-            return _forward_backward_pomegranate(log_emissions=log_emissions)
-        else:
-            raise ValueError(f"Unknown algorithm: {alg}")
-
-    def _forward_backward_pomegranate(self, X):
-        pass
-
-    def compute_log_emissions(self, X):
-        # use the obs_model to compute log emissions
-        # TODO: implement
-        pass
 
 
 # helpers for pomegranate HMM

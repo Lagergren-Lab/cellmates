@@ -222,32 +222,75 @@ class EM:
 def jcb_em_ctrtable(obs: np.ndarray, n_states: int = 7, alpha=1., l_init=None, max_iter: int = 200, rtol: float = 1e-4,
                     jc_correction: bool = False, num_processors: int = 1) -> np.ndarray:
     """
-    Run the JCB EM algorithm to estimate the centroid-to-root distances for each pair of cells. Wrapper function
-    that only returns the centroid-to-root distances.
+    Run the JCB EM algorithm to estimate the centroid-to-root distances for each pair of cells.
+
+    .. deprecated::
+        This function is deprecated. Use the :class:`EM` class instead for more flexibility.
+
+    Parameters
+    ----------
+    obs : np.ndarray
+        Array of shape (n_sites, n_cells) with observations.
+    n_states : int
+        Number of copy number states.
+    alpha : float
+        Alpha parameter for the JCB model, length scaling factor.
+    l_init : np.ndarray, optional
+        Initial values for the triplet parameters.
+    max_iter : int
+        Maximum number of EM iterations.
+    rtol : float
+        Relative tolerance for convergence.
+    jc_correction : bool
+        If True, use Jukes-Cantor correction.
+    num_processors : int
+        Number of processors to use for parallel computation.
+
+    Returns
+    -------
+    np.ndarray
+        Array of shape (n_cells, n_cells, 3) with centroid-to-root distances.
     """
     return jcb_em_alg(obs, n_states, alpha, l_init, max_iter, rtol, jc_correction, num_processors)['l_hat']
 
 def jcb_em_alg(obs: np.ndarray, n_states: int = 7, alpha=1., l_init=None, max_iter: int = 200, rtol: float = 1e-4,
                jc_correction: bool = False, num_processors: int = 1, lam=100) -> dict[str, np.ndarray | dict[tuple[int, int], int | float]]:
     """
-Implementation of JCB EM algorithm in write-up
+    Run the JCB EM algorithm for phylogenetic tree inference.
+
+    .. deprecated::
+        This function is deprecated. Use the :class:`EM` class instead for more flexibility.
+
     Parameters
     ----------
-    obs array of shape (n_sites, n_cells)
-    alpha float, alpha parameter for the JCB model, length scaling factor
-    l_init array of shape (3,) with initial values for the triplet parameters, if None, initialized to an average of 5 changes over the whole length
-    max_iter int, maximum number of EM iterations (updates)
-    rtol float, relative tolerance for convergence
-    jc_correction if True, use Jukes-Cantor correction i.e. sets alpha = alpha / (n_states - 1)
-    num_processors int, number of processors to use for parallel
+    obs : np.ndarray
+        Array of shape (n_sites, n_cells) with observations.
+    n_states : int
+        Number of copy number states.
+    alpha : float
+        Alpha parameter for the JCB model, length scaling factor.
+    l_init : np.ndarray, optional
+        Array of shape (3,) with initial values for the triplet parameters.
+        If None, initialized to an average of 5 changes over the whole length.
+    max_iter : int
+        Maximum number of EM iterations (updates).
+    rtol : float
+        Relative tolerance for convergence.
+    jc_correction : bool
+        If True, use Jukes-Cantor correction i.e. sets alpha = alpha / (n_states - 1).
+    num_processors : int
+        Number of processors to use for parallel computation.
+    lam : float
+        Lambda parameter for the Poisson observation model.
+
     Returns
     -------
-    dict with keys 'l_hat', 'iterations', 'loglikelihoods'
-    'l_hat' array of shape (n_cells, n_cells, 3), estimated triplet distances (upper triangular, all other entries are -1)
-    'iterations' dict with keys (v, w) and values number of iterations until convergence
-    'loglikelihoods' dict with keys (v, w) and values log likelihood of the observations
+    dict
+        Dictionary with keys:
+        - 'l_hat': array of shape (n_cells, n_cells, 3), estimated triplet distances
+        - 'iterations': dict with keys (v, w) and values number of iterations
+        - 'loglikelihoods': dict with keys (v, w) and values log likelihood
     """
-    logging.warning('outdated function, use the new class EM instead')
     evo_model = JCBModel(n_states=n_states, alpha=alpha, jc_correction=jc_correction)
     em = EM(n_states=n_states, obs_model='poisson', evo_model=evo_model, alpha=alpha)
     em.fit(obs, max_iter=max_iter, rtol=rtol, num_processors=num_processors, theta_init=l_init)
@@ -260,9 +303,34 @@ Implementation of JCB EM algorithm in write-up
 def em_alg(obs: np.ndarray, n_states: int = 7, eps_init=None, max_iter: int = 200, rtol: float = 1e-4,
            num_processors: int = 1) -> dict[str, np.ndarray | dict[tuple[int, int], int | float]]:
     """
-    CopyTree
+    Run the CopyTree EM algorithm for phylogenetic tree inference.
+
+    .. deprecated::
+        This function is deprecated. Use the :class:`EM` class instead for more flexibility.
+
+    Parameters
+    ----------
+    obs : np.ndarray
+        Array of shape (n_sites, n_cells) with observations.
+    n_states : int
+        Number of copy number states.
+    eps_init : np.ndarray, optional
+        Initial values for epsilon parameters. Defaults to [0.01, 0.01, 0.01].
+    max_iter : int
+        Maximum number of EM iterations.
+    rtol : float
+        Relative tolerance for convergence.
+    num_processors : int
+        Number of processors to use for parallel computation.
+
+    Returns
+    -------
+    dict
+        Dictionary with keys:
+        - 'l_hat': array of shape (n_cells, n_cells, 3), estimated triplet distances
+        - 'iterations': dict with keys (v, w) and values number of iterations
+        - 'loglikelihoods': dict with keys (v, w) and values log likelihood
     """
-    logging.warning('outdated function, use the new class EM instead')
     if eps_init is None:
         eps_init = np.array([0.01] * 3)
     evo_model = CopyTree(n_states=n_states)

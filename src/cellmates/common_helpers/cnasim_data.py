@@ -436,32 +436,6 @@ def _parse_newick(tree_file):
 
     return tree_nx
 
-def _parse_newick_old(tree_file):
-    """
-    Parameters
-    ----------
-    tree_file: filepath. if newick string is desired, it's enough to
-        pass StringIO(newick_string) instead
-
-    Returns
-    -------
-    nx.DiGraph tree
-    """
-    tree = Phylo.read(tree_file, 'newick')
-    und_tree_nx = Phylo.to_networkx(tree)
-    # Phylo names add unwanted information in unstructured way
-    # find node numbers and relabel nx tree
-    names_string = list(str(cl.confidence) if cl.name is None else cl.name for cl in und_tree_nx.nodes)
-    try:
-        names = list(map(int, names_string))
-    except ValueError:
-        names = names_string
-    mapping = dict(zip(und_tree_nx, names))
-    relabeled_tree = nx.relabel_nodes(und_tree_nx, mapping)
-    tree_nx = nx.DiGraph()
-    tree_nx.add_weighted_edges_from(relabeled_tree.edges(data='weight'))
-    return tree_nx
-
 # =======================
 # Command line interface
 # =======================

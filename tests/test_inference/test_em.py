@@ -746,17 +746,19 @@ class EMTestCase(unittest.TestCase):
         print("--- TRUE TREE ---")
         data['tree'].print_plot(plot_metric='length')
 
-        # pick two leaves whose CTR is not the root
-        c1, c2 = 0, 3
-        # get node with label
-        centroid = data['tree'].find_node_with_label('4')
+        # pick two leaves whose CTR is not the root - find dynamically
+        c1, c2 = None, None
+        centroid = None
+        for r, s in itertools.combinations(range(data['obs'].shape[1]), 2):
+            mrca = data['tree'].mrca(taxon_labels=[str(r), str(s)])
+            if mrca != data['tree'].seed_node:
+                c1, c2 = r, s
+                centroid = mrca
+                break
+        # If all pairs have root as MRCA, skip the test
+        if centroid is None:
+            self.skipTest("No pair with non-root MRCA found in random tree")
         self.assertNotEqual(data['tree'].seed_node, centroid, msg="centroid is the root, fix the test")
-        self.assertEqual(mrca:=data['tree'].mrca(taxon_labels=[str(c1), str(c2)]), centroid, msg=f"centroid {centroid.label} is not the mrca ({mrca.label}) of {c1} and {c2}")
-        # for r, s in itertools.combinations(range(data['obs'].shape[1]), 2):
-        #     centroid = data['tree'].mrca(taxon_labels=[str(r), str(s)])
-        #     if centroid != data['tree'].seed_node:
-        #         c1, c2 = r, s
-        #         break
         print(f"Centroid of {c1} and {c2} is {centroid.label} with edge length {centroid.edge_length}")
 
         print(f"Copy Numbers")

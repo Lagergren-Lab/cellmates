@@ -76,6 +76,7 @@ def predict_cn_profiles(obs: np.ndarray, nx_tree: nx.DiGraph, cell_names: list,
                         zero_absorption: bool = True) -> tuple[np.ndarray, list]:
     """
     Predict copy number profiles for all nodes in the tree using Viterbi algorithm.
+
     Parameters
     ----------
     obs : np.ndarray (n_bins x n_cells)
@@ -90,6 +91,7 @@ def predict_cn_profiles(obs: np.ndarray, nx_tree: nx.DiGraph, cell_names: list,
         Observation model for leaf nodes.
     zero_absorption : bool, optional
         Whether to enforce zero-absorbing states.
+
     Returns
     -------
     predicted_cn : np.ndarray (n_nodes x n_bins)
@@ -108,7 +110,6 @@ def predict_cn_profiles(obs: np.ndarray, nx_tree: nx.DiGraph, cell_names: list,
 
     cn_obs_model = JitterCopy(n_states=n_states, jitter=1e-3)  # FIXME: JitterCopy is a temporary solution
     root = [n for n,d in int_nx_tree.in_degree() if d==0][0]
-    # print(f"Root node is {root}")
     cn_matrix = np.zeros((n_nodes, n_bins), dtype=int) - 1
     cn_matrix[root, :] = 2
     # save internal nodes log_probs
@@ -117,19 +118,27 @@ def predict_cn_profiles(obs: np.ndarray, nx_tree: nx.DiGraph, cell_names: list,
     # add log_p for observed leaves
     for i in range(n_cells):
         log_p[i, :, :] = leaf_obs_model.log_emission_split(obs[:, [i, 0]])[0]
-    visited = {root}
+    visited = set()  # Start with empty set, root will be processed
     # traverse the tree postorder and use viterbi to predict copy numbers
     for u in tqdm(nx.dfs_postorder_nodes(int_nx_tree), desc="Predicting CN profiles", total=n_nodes):
-        # operate on median nodes
+        # operate on internal nodes (nodes with children)
         if u not in visited and int_nx_tree.out_degree(u) != 0:
             vw = list(int_nx_tree.successors(u))  # if binary tree, there are two children
             # make transition matrix
-            evo_model.theta = [
-                nx.path_weight(int_nx_tree, nx.shortest_path(int_nx_tree, root, u), weight='length'),
-                int_nx_tree.edges[u, vw[0]]['length'],
-                int_nx_tree.edges[u, vw[1]]['length']
-            ]
-            # at least one is an internal node
+            if u == root:
+                # For root, distance to root is 0
+                evo_model.theta = [
+                    0.0,  # root to root distance is 0
+                    int_nx_tree.edges[u, vw[0]]['length'],
+                    int_nx_tree.edges[u, vw[1]]['length']
+                ]
+            else:
+                evo_model.theta = [
+                    nx.path_weight(int_nx_tree, nx.shortest_path(int_nx_tree, root, u), weight='length'),
+                    int_nx_tree.edges[u, vw[0]]['length'],
+                    int_nx_tree.edges[u, vw[1]]['length']
+                ]
+            # compute log emissions for children
             log_emissions = np.zeros((n_bins, n_states, n_states))
             if not visited.intersection(vw):
                 obs_vw = obs[:, vw]
