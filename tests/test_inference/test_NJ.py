@@ -43,5 +43,5 @@ class NJTestCase(unittest.TestCase):
 
         nj_tree_dendropy.print_plot(plot_metric='length')
         true_tree.print_plot(plot_metric='length')
-        self.assertAlmostEquals(rf_distance, 0, delta=0.1)
+        self.assertAlmostEqual(rf_distance, 0, delta=0.1)
 

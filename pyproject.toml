@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cellmates"
-version = "0.1.0"   # You can later replace with dynamic = ["version"] if you use setuptools-scm
+version = "0.1.0"
 description = "Cellmates is a maximum likelihood method for copy-number based single-cell tree reconstruction in tumor data"
 readme = "README.md"
 authors = [
@@ -16,16 +16,34 @@ license = { text = "GPL-3.0-only" }
 requires-python = ">=3.10"
 classifiers = [
   "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
   "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
   "Operating System :: OS Independent",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
 
 dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.15",
+  "networkx>=3.4",
+  "dendropy>=5.0",
+  "anndata>=0.11",
+  "scikit-bio>=0.6",
+  "pomegranate>=1.1",
+  "biopython>=1.85",
+  "tqdm",
+  "matplotlib",
+  "seaborn",
+  "pandas",
 ]
 
 [project.urls]
 Homepage = "https://github.com/Lagergren-Lab/cellmates"
-Repository = "https://github.com/Lagergren-Lab/cellmates/issues"
+Repository = "https://github.com/Lagergren-Lab/cellmates"
+Issues = "https://github.com/Lagergren-Lab/cellmates/issues"
 
 [project.scripts]
 cellmates = "cellmates.bin.core:main"
@@ -35,6 +53,7 @@ dev = [
   "pytest>=8.0",
   "scgenome",
   "pydot",
+  "graphviz",
 ]
 
 [tool.setuptools]
@@ -42,3 +61,14 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*", "*TestCase"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+  "ignore::DeprecationWarning",
+  "ignore::FutureWarning",
+]
