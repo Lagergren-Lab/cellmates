@@ -23,8 +23,9 @@ def nxtree_to_newick(g: nx.DiGraph, root=None, weight=None, is_internal_call=Fal
         assert 1 == len(roots)
         root = roots[0][0]
     subgs = []
-    # sorting makes sure same trees have same newick
-    for child in sorted(g[root]):
+    # sorting makes sure same trees have same newick (if node names are comparable)
+    child_list = sorted(g[root]) if all(isinstance(n, int) for n in g[root]) else list(g[root])
+    for child in child_list:
         node_str: str
         if len(g[child]) > 0:
             node_str = nxtree_to_newick(g, root=child, weight=weight, is_internal_call=True)
@@ -237,7 +238,7 @@ def make_gt_tree_dist(ad, n_states, cell_names: list) -> tuple[dpy.Tree, np.ndar
     nxtree = relabel_name_to_int(nxtree, cell_names)
     dpy_tree = convert_networkx_to_dendropy(nxtree, edge_length='length', internal_nodes_label='int')
     # print("DPY tree with lengths:", dpy_tree.as_string(schema='newick'))
-    dist_matrix = get_ctr_table(dpy_tree)
+    dist_matrix = get_ctr_table_int(dpy_tree)
     return dpy_tree, dist_matrix
 
 def relabel_name_to_int_mapping(nxtree: nx.DiGraph, cell_names: list, ancestors_mapping=None) -> tuple[nx.DiGraph, dict]:
@@ -284,9 +285,9 @@ def get_root_distance(centroid):
     return root_distance
 
 
-def get_ctr_table(tree: dpy.Tree) -> np.ndarray:
+def get_ctr_table_int(tree: dpy.Tree, full=False) -> np.ndarray:
     """
-    Get the centroid table for a given tree.
+    Get the centroid table for a given tree where leaves are labeled with integers.
     The centroid table is a 3D numpy array of shape (n_cells, n_cells, 3) where n_cells is the number of leaves in the tree.
     For each pair of cells (r, s) with r < s, the entry ctr_table[r, s] is a vector of 3 values:
         - ctr_table[r, s, 0]: distance from the centroid of r and s to the root
@@ -297,23 +298,51 @@ def get_ctr_table(tree: dpy.Tree) -> np.ndarray:
     Parameters
     ----------
     tree: dpy.Tree, the input tree with edge _lengths
+    full: bool, if True, returns the full symmetric matrix, otherwise only upper triangular part is filled
 
     Returns
     -------
     ctr_table: np.ndarray, the centroid table
     """
+    # if leaves are not integers, raise error
+    if not all(leaf.label.isdigit() for leaf in tree.leaf_nodes()):
+        raise ValueError("Leaves must be labeled with integers to use get_ctr_table_int, use get_ctr_table instead")
+    ctr_table, _ = get_ctr_table(tree, full=full)
+    return ctr_table
+
+def get_ctr_table(tree: dpy.Tree, full: bool = False) -> tuple[np.ndarray, list]:
+    """
+    Get the CTR table for a given tree where leaves are labeled with integers.
+    The CTR table is a 2D numpy array of shape (n_cells, n_cells) where n_cells is the number of leaves in the tree.
+    For each pair of cells (r, s), the entry ctr_table[r, s] is the distance between r and s in the tree.
+    The tree must be rooted and all leaves must be labeled with unique integers from 0 to n_cells - 1.
+    Parameters
+    ----------
+    tree: dpy.Tree, the input tree with edge _lengths
+
+    Returns
+    -------
+    tuple[np.ndarray, list], the triplet distance table and the list of taxa labels as ordered in the table
+    """
+    taxa = tree.taxon_namespace
     n_cells = len(tree.leaf_nodes())
     assert n_cells == len(tree.taxon_namespace)
     ctr_table = - np.ones((n_cells, n_cells, 3))
     for r, s in combinations(range(n_cells), 2):
         assert r < s, "r must be less than s to ensure upper triangular matrix"
         # most recent common ancestor
-        centroid = tree.mrca(taxon_labels=[str(r), str(s)])
+        r_taxa = taxa[r].label
+        s_taxa = taxa[s].label
+        centroid = tree.mrca(taxon_labels=[r_taxa, s_taxa])
         ctr_table[r, s, 0] = get_root_distance(centroid)
-        ctr_table[r, s, 1] = get_node2node_distance(tree, centroid.label, str(r))
-        ctr_table[r, s, 2] = get_node2node_distance(tree, centroid.label, str(s))
-
-    return ctr_table
+        ctr_table[r, s, 1] = get_node2node_distance(tree, centroid.label, r_taxa)
+        ctr_table[r, s, 2] = get_node2node_distance(tree, centroid.label, s_taxa)
+        if full:
+            ctr_table[s, r, :] = ctr_table[r, s, :]
+    # fill diagonal with zeros
+    for i in range(n_cells):
+        ctr_table[i, i, :] = 0.0
+    return ctr_table, [taxa[i].label for i in range(n_cells)]
 
 def f1_score_clades(tree: dpy.Tree, clone_assignment: list) -> float:
     """

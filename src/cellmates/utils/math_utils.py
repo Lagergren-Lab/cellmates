@@ -32,6 +32,23 @@ def p_from_l(l, n_states=4) -> float | np.ndarray:
     """
     return (1 - np.exp(-n_states * l)) * (n_states - 1) / n_states
 
+def cn_changes_from_healthy(cnps: np.ndarray, healthy_state: int = 2) -> list:
+    """
+    Compute the changes in copy number states from a healthy state for a given profile.
+    Parameters
+    ----------
+    cn_profile: np.ndarray, shape (n_nodes, n_sites), copy number profiles for each node
+    healthy_state: int, the healthy copy number state (default: 2)
+
+    Returns
+    -------
+    np.ndarray, shape (n_nodes,), number of changes from healthy state for each node
+    """
+    n_bins = cnps.shape[1]
+    healthy_cn = np.full(n_bins, healthy_state)
+    changes = compute_cn_changes(np.vstack([healthy_cn, cnps]), pairs=[(0, i + 1) for i in range(cnps.shape[0])])
+    return changes
+
 def compute_cn_changes(cn_profile: np.ndarray, pairs: list = None) -> list:
     """
     Compute the changes in copy number states for a given profile according to the CopyTree model.

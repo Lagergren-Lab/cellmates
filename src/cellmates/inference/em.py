@@ -19,8 +19,8 @@ from cellmates.models.obs import ObsModel, NormalModel, PoissonModel, JitterCopy
 from cellmates.simulation.datagen import rand_dataset
 
 from cellmates.models.evo import EvoModel, CopyTree, JCBModel
-from cellmates.utils.math_utils import l_from_p, compute_cn_changes
-from cellmates.utils.tree_utils import convert_networkx_to_dendropy, get_ctr_table
+from cellmates.utils.math_utils import l_from_p, compute_cn_changes, cn_changes_from_healthy
+from cellmates.utils.tree_utils import convert_networkx_to_dendropy, get_ctr_table_int
 
 class EM:
     """
@@ -506,11 +506,7 @@ def estimate_theta_from_cn(cn_profiles, n_states: int, error_rate: float = 0.01,
         case 'triangle':
             # compute distances among pairs and from root, then solve triangle: l_ru = (l_rv + l_rw - l_vw) / 2
             min_l = l_from_p(1 / n_sites, n_states)
-            root_cn = np.zeros_like(cn_profiles[0]) + 2  # assume diploid root
-            l_v = []
-            for i in range(n_cells):
-                p_change = compute_cn_changes(np.vstack((root_cn, cn_profiles[i])))[0] / n_sites
-                l_v.append(l_from_p(p_change, n_states))
+            l_v = [l_from_p(x / n_sites, n_states) for x in cn_changes_from_healthy(cn_profiles, healthy_state=2)]
             for i, j in tqdm(itertools.combinations(range(n_cells), r=2), total=int(comb(n_cells, 2)), desc="Estimating initial theta"):
                 p_change = compute_cn_changes(cn_profiles[[i, j], :])[0] / n_sites
                 l_vw = l_from_p(p_change, n_states)
@@ -535,7 +531,7 @@ if __name__ == '__main__':
     n_sites = 500
     data = rand_dataset(n_states, n_sites, obs_model='poisson', p_change=0.05, n_cells=n_cells, seed=seed)
     # true ctr_table
-    true_ctr_table = get_ctr_table(data['tree'])
+    true_ctr_table = get_ctr_table_int(data['tree'])
 
     start_time = time.time()
     em = EM(n_states,

@@ -3,7 +3,7 @@ import random
 import unittest
 import numpy as np
 
-from cellmates.simulation.datagen import rand_dataset, get_ctr_table, simulate_quadruplet, rand_ann_dataset
+from cellmates.simulation.datagen import rand_dataset, get_ctr_table_int, simulate_quadruplet, rand_ann_dataset
 
 
 class DatagenTestCase(unittest.TestCase):
@@ -31,7 +31,7 @@ class DatagenTestCase(unittest.TestCase):
         n_sites = 20
 
         data = rand_dataset(n_states, n_sites, obs_model='poisson', n_cells=n_cells)
-        ctr_table = get_ctr_table(data['tree'])
+        ctr_table = get_ctr_table_int(data['tree'])
         for r, s in itertools.combinations(range(n_cells), 2):
             centroid = data['tree'].mrca(taxon_labels=[str(r), str(s)])
             if centroid != data['tree'].seed_node:

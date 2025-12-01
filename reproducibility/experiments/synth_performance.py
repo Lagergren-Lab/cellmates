@@ -9,7 +9,7 @@ from dendropy.calculate import treecompare
 from cellmates.inference.em import jcb_em_alg
 from cellmates.inference.neighbor_joining import build_tree
 from cellmates.simulation.datagen import rand_dataset
-from cellmates.utils.tree_utils import convert_networkx_to_dendropy, get_ctr_table
+from cellmates.utils.tree_utils import convert_networkx_to_dendropy, get_ctr_table_int
 
 if __name__=='__main__':
     logging.basicConfig(level=logging.DEBUG)
@@ -59,7 +59,7 @@ if __name__=='__main__':
                 seed = random.randint(0, 100000)
                 data = rand_dataset(n_states, n_sites, obs_model='poisson', alpha=alpha, p_change=p_change,
                                     n_cells=n_cells, seed=seed)
-                true_ctr_table = get_ctr_table(data['tree'])
+                true_ctr_table = get_ctr_table_int(data['tree'])
 
                 start = time.time()
                 out_dict = jcb_em_alg(data['obs'], n_states, max_iter=max_iter, num_processors=num_processors)

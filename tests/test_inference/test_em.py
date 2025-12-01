@@ -21,7 +21,7 @@ from cellmates.simulation.datagen import rand_dataset, simulate_quadruplet, rand
 from cellmates.inference.em import jcb_em_ctrtable, EM, jcb_em_alg, fit_quadruplet
 from cellmates.utils.testing import create_output_test_folder, _generate_obs
 from cellmates.utils.tree_utils import convert_networkx_to_dendropy, random_binary_tree, label_tree, nxtree_to_newick, \
-    get_ctr_table
+    get_ctr_table_int
 from cellmates.utils.math_utils import l_from_p, p_from_l, compute_cn_changes
 
 from cellmates.inference.em import build_tree
@@ -203,7 +203,7 @@ class EMTestCase(unittest.TestCase):
         fig, ax = plt.subplots()
         plot_cn_profile(data['cn'], ax=ax)
         fig.savefig(out_dir + '/cn_profile.png')
-        gt_ctr_table = get_ctr_table(data['tree'])
+        gt_ctr_table = get_ctr_table_int(data['tree'])
         # print cn in order r, u, v, w (check simulate_quadruplet doc for sorting info)
         print(f"CN (r, u, v, w):\n{data['cn'][[3, 2, 0, 1], :20]}")
 
@@ -266,7 +266,7 @@ class EMTestCase(unittest.TestCase):
         hmm_alg = 'pomegranate'
 
         data = simulate_quadruplet(n_sites, gamma_params=self.DEFAULT_GAMMA_PARAMS, n_states=n_states, seed=seed)
-        gt_ctr_table = get_ctr_table(data['tree'])
+        gt_ctr_table = get_ctr_table_int(data['tree'])
         # print cn in order r, u, v, w (check simulate_quadruplet doc for sorting info)
         print(f"CN (r, u, v, w):\n{data['cn'][[3, 2, 0, 1], :20]}")
         # plot
@@ -433,7 +433,7 @@ class EMTestCase(unittest.TestCase):
         fig.savefig(out_dir + '/cn_profile.png')
 
         # print tree without _lengths since they are not used to generate data in SimulationEvoModel
-        gt_ctr_table = get_ctr_table(data['tree'])
+        gt_ctr_table = get_ctr_table_int(data['tree'])
         l_init = gt_ctr_table[0, 1, :].tolist()
         print(f"Generated tree")
         data['tree'].print_plot()
@@ -597,7 +597,7 @@ class EMTestCase(unittest.TestCase):
         fig.savefig(out_dir + '/cn_profile.png')
 
         # print tree without _lengths since they are not used to generate data in SimulationEvoModel
-        gt_ctr_table = get_ctr_table(data['tree'])
+        gt_ctr_table = get_ctr_table_int(data['tree'])
         l_init = gt_ctr_table[0, 1, :].tolist()
         print(f"Generated tree")
         data['tree'].print_plot()
@@ -664,7 +664,7 @@ class EMTestCase(unittest.TestCase):
 
         obs_model = PoissonModel(n_states, 100, 100)
         data = simulate_quadruplet(n_sites, obs_model=obs_model, gamma_params=self.DEFAULT_GAMMA_PARAMS, n_states=n_states)
-        gt_ctr_table = get_ctr_table(data['tree'])
+        gt_ctr_table = get_ctr_table_int(data['tree'])
         # print cn in order r, u, v, w (check simulate_quadruplet doc for sorting info)
         print(f"\nCN (first 20 sites) (r, u, v, w):\n{data['cn'][[3, 2, 0, 1], :20]}")
 
@@ -735,7 +735,7 @@ class EMTestCase(unittest.TestCase):
         data = rand_dataset(n_states, n_sites, obs_model='poisson', alpha=alpha, p_change=8 / n_sites, n_cells=n_cells,
                             seed=seed)
         print(f"True CTR table")
-        true_ctr_table = get_ctr_table(data['tree'])
+        true_ctr_table = get_ctr_table_int(data['tree'])
         print(true_ctr_table)
         # for each node print the edge length
         for node in data['tree'].preorder_node_iter():
@@ -942,7 +942,7 @@ class EMTestCase(unittest.TestCase):
         tree.print_plot(plot_metric='length')
 
         # derive true ctr table from tree
-        ctr_table = get_ctr_table(tree)
+        ctr_table = get_ctr_table_int(tree)
 
         # rebuild tree
         nx_tree = build_tree(ctr_table)
@@ -1015,7 +1015,7 @@ class EMTestCase(unittest.TestCase):
         data = simulate_quadruplet(n_sites, evo_model=evo_model, obs_model=obs_model,
                                    n_states=n_states, gamma_params=self.DEFAULT_GAMMA_PARAMS)
         print(data['obs'][data['cn'][1] == 0,1])
-        gt_ctr_table = get_ctr_table(data['tree'])  # eps
+        gt_ctr_table = get_ctr_table_int(data['tree'])  # eps
         # print cn in order r, u, v, w (check simulate_quadruplet doc for sorting info)
         print(f"CN (r, u, v, w):\n{data['cn'][[3, 2, 0, 1], :20]}")
 

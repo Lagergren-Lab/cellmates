@@ -9,7 +9,7 @@ from cellmates.inference.em import EM
 from cellmates.models.evo import JCBModel
 from cellmates.models.obs import PoissonModel, NormalModel
 from cellmates.simulation.datagen import simulate_quadruplet, Dataset
-from cellmates.utils.tree_utils import get_ctr_table
+from cellmates.utils.tree_utils import get_ctr_table_int
 from cellmates.utils.math_utils import p_from_l, l_from_p, compute_cn_changes
 
 
@@ -69,7 +69,7 @@ def main(snakemake):
                                evo_model=evo_model, gamma_params=gamma_seq,
                                seed=seed)
 
-    gt_ctr = get_ctr_table(data['tree'])  # shape: (2, 2, 3), but only 3 values are stored (0,1,:3)
+    gt_ctr = get_ctr_table_int(data['tree'])  # shape: (2, 2, 3), but only 3 values are stored (0,1,:3)
     em = EM(n_states=n_states, obs_model=obs_model, evo_model=evo_model, tree_build='ctr')
     start = time.time()
     em.fit(data['obs'], max_iter=max_iter, num_processors=num_processors,

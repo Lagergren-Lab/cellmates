@@ -16,7 +16,7 @@ from cellmates.models.obs import ObsModel, NormalModel, PoissonModel
 from cellmates.utils import tree_utils
 from cellmates.utils.math_utils import l_from_p, p_from_l
 from cellmates.utils.tree_utils import random_binary_tree, label_tree, get_root_distance, \
-    get_ctr_table
+    get_ctr_table_int
 
 
 class Dataset(TypedDict):
@@ -115,7 +115,7 @@ def _get_full_distance_matrix_from_tree(tree_dpy, matrix_idx: int = 0):
     # the ctr table is upper triangular, with shape (n_cells, n_cells, 3)
     # make it full and fill diagonal with node to root distances
     n_cells = len(tree_dpy.leaf_nodes())
-    ctr_triul_matrix = get_ctr_table(tree_dpy)[..., matrix_idx]
+    ctr_triul_matrix = get_ctr_table_int(tree_dpy)[..., matrix_idx]
     cell_dist = {int(t.label): get_root_distance(t) for t in tree_dpy.leaf_node_iter()}
     ctr_full_matrix = np.empty_like(ctr_triul_matrix)
     for c, d in cell_dist.items():

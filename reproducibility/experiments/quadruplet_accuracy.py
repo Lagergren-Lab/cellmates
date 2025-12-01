@@ -14,7 +14,7 @@ from cellmates.inference.em import EM
 from cellmates.models.evo import JCBModel
 from cellmates.models.obs import PoissonModel, NormalModel
 from cellmates.simulation.datagen import simulate_quadruplet, _from_data_to_adata
-from cellmates.utils.tree_utils import get_ctr_table
+from cellmates.utils.tree_utils import get_ctr_table_int
 from cellmates.utils.math_utils import p_from_l, l_from_p
 
 
@@ -61,7 +61,7 @@ def run_experiment(n_sites, length_size, seed, max_iter, file_name, n_states, ga
         g['fig'].savefig(out_dir + f"/data/{length_size_str}.png")
 
     # ground truth (data-generating length means)
-    gt_ctr_table = get_ctr_table(data['tree'])
+    gt_ctr_table = get_ctr_table_int(data['tree'])
 
     # run EM
     em = EM(n_states=n_states, obs_model=obs_model, evo_model=evo_model, tree_build='ctr')
