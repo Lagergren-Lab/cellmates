@@ -22,9 +22,9 @@ rule simulate_data:
     conda:
         "cellmates"
     params:
-        n_cells=lambda wildcards: wildcards.n,
-        p_change=lambda wildcards: wildcards.p,
-        seed=lambda wildcards: wildcards.s,
+        n_cells=lambda wildcards: int(wildcards.n),
+        p_change=lambda wildcards: float(wildcards.p),
+        seed=lambda wildcards: int(wildcards.s),
         tree_type=lambda wildcards: wildcards.t
     script: "scripts/simulate_data.py"
 
@@ -37,10 +37,10 @@ rule run_method:
     conda:
         "cellmates"
     params:
-        n_cells=lambda wildcards: wildcards.n,
-        p_change=lambda wildcards: wildcards.p,
+        n_cells=lambda wildcards: int(wildcards.n),
+        p_change=lambda wildcards: float(wildcards.p),
         method=lambda wildcards: wildcards.m,
-        seed=lambda wildcards: wildcards.s,
+        seed=lambda wildcards: int(wildcards.s),
         tree_type=lambda wildcards: wildcards.t
     script: "scripts/save_res.py"
 
