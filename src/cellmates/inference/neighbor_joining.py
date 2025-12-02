@@ -73,7 +73,7 @@ def _build_tree_rec(ctr: dict, ntc: dict, ntr: dict, otus: set, edges: set[tuple
     return edges
 
 
-def build_tree(ctr_table: np.ndarray, edge_attr='length', internal_indexing=False) -> nx.DiGraph:
+def rooted_nj0(ctr_table: np.ndarray, edge_attr='length', internal_indexing=False) -> nx.DiGraph:
     """
     Build a tree from a centroid-to-root distance table. The root of the tree is assumed to be the common progenitor of all OTUs,
     which means that the healthy state is excluded from the tree and intended to be an additional node connected to the root.
@@ -297,7 +297,7 @@ def reroot_preserving_weights(G: nx.Graph, root):
     return T
 
 
-def rooted_nj(triplet_distance_matrix, edge_attr='weight', taxa=None) -> nx.DiGraph:
+def rooted_nj(triplet_distance_matrix, edge_attr='weight', taxa=None, inplace: bool = False) -> nx.DiGraph:
     """
     Modified Neighbor-Joining algorithm to build a rooted tree from a triplet distance matrix.
     The formula used to compute the Q-matrix is adapted to account for the triplet distances.
@@ -305,9 +305,13 @@ def rooted_nj(triplet_distance_matrix, edge_attr='weight', taxa=None) -> nx.DiGr
         triplet_distance_matrix (np.ndarray): A 3D numpy array where the first two dimensions represent pairs of OTUs,
             and the third dimension contains three values: the median distance to the root and the two leaves distances to the median.
         edge_attr (str): The attribute name to use for edge lengths in the resulting tree.
+        taxa (list of str, optional): Names corresponding to leaf nodes. If None, indices are used.
+        inplace (bool): If True, modifies the input distance matrix in place. Default is False.
     Returns:
         nx.DiGraph: A rooted tree represented as a directed graph with edge lengths.
     """
+    if not inplace:
+        triplet_distance_matrix = np.copy(triplet_distance_matrix)
     lm = rooted_nj_lm(triplet_distance_matrix)  # linkage matrix with root already included
     tree = lm_to_tree(lm, edge_attr)
     if taxa is not None:
@@ -317,7 +321,7 @@ def rooted_nj(triplet_distance_matrix, edge_attr='weight', taxa=None) -> nx.DiGr
 
 
 def std_nj_root(distance_matrix: np.ndarray, root_dist: np.ndarray, edge_attr='weight', taxa=None,
-                collapsed_root=True) -> nx.DiGraph:
+                collapsed_root=True, inplace=False) -> nx.DiGraph:
     """
     Standard Neighbor-Joining algorithm to build an rooted tree from a distance matrix and distances to the root.
     Args:
@@ -325,10 +329,15 @@ def std_nj_root(distance_matrix: np.ndarray, root_dist: np.ndarray, edge_attr='w
         root_dist (np.ndarray): An array of distances from each OTU to the root.
         edge_attr (str): The attribute name to use for edge lengths in the resulting tree.
         taxa (list of str, optional): Names corresponding to leaf nodes. If None, indices are used.
+        collapsed_root (bool): If True, collapses the root edges by re-rooting at the child of the root.
+        inplace (bool): If True, modifies the input distance matrix in place. Default is False.
     Returns:
         nx.DiGraph: An unrooted tree represented as a directed graph with edge lengths.
     """
     root_idx = distance_matrix.shape[0]
+    if not inplace:
+        distance_matrix = distance_matrix.copy()
+        root_dist = root_dist.copy()
     distance_matrix = extend_dm(distance_matrix, root_dist)
     lm = std_nj_lm(distance_matrix)  # standard nj on leaves + root
     tree = lm_to_rooted_tree(lm, edge_attr=edge_attr, root=root_idx) # convert to rooted tree at root_idx

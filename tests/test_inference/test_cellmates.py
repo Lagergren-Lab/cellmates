@@ -100,7 +100,7 @@ class CellmatesTestCase(unittest.TestCase):
         print(f"Total L1 diff: \n {tot_L1_diff}")
 
         # Build tree from inferred distances
-        tree_res_nx = neighbor_joining.build_tree(distances)
+        tree_res_nx = neighbor_joining.rooted_nj0(distances)
         tree_res_dp = tree_utils.convert_networkx_to_dendropy(tree_res_nx, taxon_namespace=tree_dp.taxon_namespace)
         # Compare with standard NJ tree
         pairwise_distances = distances[:, :, 1] + distances[:, :, 2]
@@ -183,7 +183,7 @@ class CellmatesTestCase(unittest.TestCase):
         print(f"Distance matrix: \n {distances[0, ...]}")
 
         # Get the inferred tree
-        tree_res_nx = neighbor_joining.build_tree(distances, internal_indexing=True)
+        tree_res_nx = neighbor_joining.rooted_nj0(distances, internal_indexing=True)
 
         nx.write_network_text(tree_nx)
         nx.write_network_text(tree_res_nx)
@@ -240,8 +240,8 @@ class CellmatesTestCase(unittest.TestCase):
                 distances = -np.ones((n_cells, n_cells, 3))
                 for v, w in cell_pairs:
                     distances[v, w, :] = l_quad_exp[v, w]
-                tree_res_nx = neighbor_joining.build_tree(distances, internal_indexing=True)
-                tree_res_nx2 = neighbor_joining.build_tree(dist_matrix, internal_indexing=True)
+                tree_res_nx = neighbor_joining.rooted_nj0(distances, internal_indexing=True)
+                tree_res_nx2 = neighbor_joining.rooted_nj0(dist_matrix, internal_indexing=True)
                 tree_nj_skbio = tree_utils.skbio_neighbour_joining_from_pairwise_distances(pairwise_distances=l_pair_exp)
 
                 tree_nj_dp = dendropy.Tree.get(data=str(tree_nj_skbio), schema="newick",
@@ -319,7 +319,7 @@ class CellmatesTestCase(unittest.TestCase):
             (v, w), theta_vw, loglik, it = out_quad
             distances[v, w, :] = theta_vw
 
-        tree_res_nx = neighbor_joining.build_tree(distances, internal_indexing=True)
+        tree_res_nx = neighbor_joining.rooted_nj0(distances, internal_indexing=True)
 
         tree_res_dp = tree_utils.convert_networkx_to_dendropy(tree_res_nx, taxon_namespace=cnasim_tree_dp.taxon_namespace)
 

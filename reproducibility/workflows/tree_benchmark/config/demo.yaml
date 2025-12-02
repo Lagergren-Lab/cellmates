@@ -1,0 +1,7 @@
+# experiment parameter gridconfig.yaml
+n_cells: [10, 20]
+p_change: [0.01, 0.2]
+seeds: 2
+method: ['rnj0', 'rnj1', 'nj-root']
+tree_type: ['unbalanced', 'balanced']
+results_dir: demo_results

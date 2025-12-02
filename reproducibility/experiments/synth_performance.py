@@ -7,7 +7,7 @@ import numpy as np
 from dendropy.calculate import treecompare
 
 from cellmates.inference.em import jcb_em_alg
-from cellmates.inference.neighbor_joining import build_tree
+from cellmates.inference.neighbor_joining import rooted_nj0
 from cellmates.simulation.datagen import rand_dataset
 from cellmates.utils.tree_utils import convert_networkx_to_dendropy, get_ctr_table_int
 
@@ -67,7 +67,7 @@ if __name__=='__main__':
                 ctr_table = out_dict['l_hat']
                 likelihoods = out_dict['loglikelihoods']
                 iterations = out_dict['iterations']
-                nx_em_tree = build_tree(ctr_table)
+                nx_em_tree = rooted_nj0(ctr_table)
                 em_tree = convert_networkx_to_dendropy(nx_em_tree, taxon_namespace=data['tree'].taxon_namespace,
                                                        edge_length='length')
 

@@ -1,0 +1,9 @@
+executor: slurm
+jobs: 32
+cores: 32
+
+default-resources:
+  mem_mb_per_cpu: 4000
+  runtime: 30
+  slurm_account: "naiss2025-22-1610"
+

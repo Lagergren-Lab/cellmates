@@ -6,6 +6,7 @@ import os
 import time
 
 import anndata
+import dendropy
 import numpy as np
 import pandas as pd
 from dendropy import Tree
@@ -17,9 +18,11 @@ import io
 
 import seaborn as sns
 import matplotlib.pyplot as plt
+from matplotlib.backends.backend_pdf import PdfPages
 import scgenome.plotting as pl
 
-from cellmates.inference.neighbor_joining import build_tree, std_nj_root, rooted_nj, get_root_dist_from_tripledist
+from cellmates.inference.neighbor_joining import rooted_nj0, std_nj_root, rooted_nj, get_root_dist_from_tripledist, \
+    extend_dm
 from cellmates.models.evo import JCBModel
 from cellmates.simulation.datagen import rand_dataset
 from cellmates.utils.math_utils import l_from_p, p_from_l, cn_changes_from_healthy
@@ -31,7 +34,38 @@ N_STATES = 8
 N_SITES = 1000
 
 
-def simulate_tree(n_cells, p_change):
+def simulate_tree(n_cells, p_change, tree_type='balanced'):
+    # simulate tree and data
+    match tree_type:
+        case 'balanced':
+            return simulate_tree_nonultra(n_cells, p_change)
+        case 'balanced-ultra':
+            return simulate_tree_ultra(n_cells, p_change)
+        case 'unbalanced':
+            return simulate_tree_unbalanced(n_cells, p_change)  # non-ultrametric unbalanced
+        case _:
+            raise ValueError(f"Unknown tree_type: {tree_type}")
+
+
+def simulate_tree_unbalanced(n_cells, p_change):
+    # hardcode imbalance level
+    birth_rate, death_rate = 1.0, 0.5
+    tns = dendropy.TaxonNamespace([dendropy.Taxon(str(i)) for i in range(n_cells)], label='taxa')
+    tree = dendropy.treesim.treesim.birth_death_tree(birth_rate, death_rate, num_extant_tips=n_cells, taxon_namespace=tns)
+    # scale tree to desired total p_change
+    max_dist = tree.max_distance_from_root()
+    desired_max_dist = l_from_p(p_change, N_STATES)
+    scale_factor = desired_max_dist / max_dist
+    for e in tree.edges():
+        if e.length is not None:
+            e.length *= scale_factor
+    label_tree(tree)
+    evo_model = JCBModel(n_states=N_STATES)
+    dat = rand_dataset(N_STATES, N_SITES, evo_model, n_cells=n_cells, tree=tree)
+    return dat['tree'], dat['cn']
+
+
+def simulate_tree_nonultra(n_cells, p_change):
     evo_model = JCBModel(n_states=N_STATES)
     dat = rand_dataset(N_STATES, N_SITES, evo_model, n_cells=n_cells, p_change=p_change)
     return dat['tree'], dat['cn']
@@ -87,6 +121,9 @@ def save_distmatrix(dist_matrix, file_name):
 
 def fast_me(dist_matrix, taxon_namespace, suffix=""):
     # run balanced minimum evolution (fast ME)
+    # timestamp to make unique file names
+    if suffix == "":
+        suffix = f'_{int(time.time() * 1000)}'
     file_name = f'dist_mat{suffix}.PHYLIP'
     save_distmatrix(dist_matrix, file_name)
     tree_prefix = f'tree{suffix}.nwk'
@@ -105,15 +142,14 @@ def fast_me(dist_matrix, taxon_namespace, suffix=""):
     label_tree(dpy_tree, method='int')
     dpy_tree.is_rooted = True
     # print("FASTME LEAVES ", [(l.taxon.label, l.label) for l in dpy_tree.leaf_nodes()])
+    # clean up
+    os.remove(file_name)
     return dpy_tree
 
 
 def cellmates_infer(dist_matrix, taxon_namespace):
-    nx_rec_tree = build_tree(dist_matrix)
-    # print("cells: ", [n for n in nx_rec_tree.nodes() if nx_rec_tree.out_degree(n) == 0])
+    nx_rec_tree = rooted_nj0(dist_matrix)
     cellmates_tree = convert_networkx_to_dendropy(nx_rec_tree, taxon_namespace=taxon_namespace, edge_length='length')
-    # print("CELLMATES LEAVES: ", [(l.taxon.label, l.label) for l in cellmates_tree.leaf_nodes()])
-    # cellmates_tree = label_tree(cellmates_tree)
     return cellmates_tree
 
 
@@ -128,58 +164,89 @@ def std_njx(dist_matrix, taxon_namespace, root_dist=None):
     # root_dist = np.sum(dist_matrix[:, :, 0] + dist_matrix[:, :, 1] + dist_matrix[:, :, 2], axis=0) / (dist_matrix.shape[0] - 1)
     if root_dist is None:
         root_dist = get_root_dist_from_tripledist(dist_matrix, agg_func='max')
-    print("root dist:\n", root_dist)
     d1d2 = dist_matrix[:, :, 1] + dist_matrix[:, :, 2]
     nx_rec_tree = std_nj_root(d1d2, root_dist=root_dist, edge_attr='length',
                               taxa=[str(i) for i in range(dist_matrix.shape[0])])
-    print("njx newick:", nxtree_to_newick(nx_rec_tree))
     std_nj_tree = convert_networkx_to_dendropy(nx_rec_tree, taxon_namespace=taxon_namespace, edge_length='length',
                                                internal_nodes_label='int')
     return std_nj_tree
 
 
-def plot_comparison(melt_df, suff="", out_dir="."):
-    # RF distance for the two methods, two plots (p_change vs RF distance and n_cells vs RF distance)
-    out_paths = [f"rf_vs_p_change{suff}.png", f"rf_vs_n_cells{suff}.png"]
+def std_njx_phylo(trip_dist, taxon_namespace, root_dist=None):
+    # standard neighbor-joining with correction for rooting
+    # root_dist = np.sum(dist_matrix[:, :, 0] + dist_matrix[:, :, 1] + dist_matrix[:, :, 2], axis=0) / (dist_matrix.shape[0] - 1)
+    if root_dist is None:
+        root_dist = get_root_dist_from_tripledist(trip_dist, agg_func='mean')
+    distance_matrix = trip_dist[:, :, 1] + trip_dist[:, :, 2]
+    distance_matrix = extend_dm(distance_matrix, root_dist)  # extend distance matrix with root distances (last row/col)
+    root_idx = distance_matrix.shape[0]
+    nj_tree = nj(
+        DistanceMatrix(distance_matrix, ids=[str(i) for i in range(distance_matrix.shape[0])])).root_by_outgroup(
+        outgroup=str(root_idx))
+    dpy_tree = Tree.get(data=str(nj_tree), schema="newick", taxon_namespace=taxon_namespace)
+    label_tree(dpy_tree, method='int')
+    dpy_tree.is_rooted = True
+    return dpy_tree
+
+
+def plot_comparison(df, pdf_path):
+    """Generate comparison plots and store them in a single PDF."""
+
     sns.set_theme(style="whitegrid")
-    # Map method labels
-    method_labels = {'cellmates': "RNJ0", 'nj': "NJ-mid", 'bme': "balME", 'rnj': "RNJ*", 'njx': "NJ-root"}
-    melt_df['method'] = melt_df['method'].map(method_labels)
 
-    # plot rf vs p_change (boxplot and swarmplot)
-    plt.figure(figsize=(10, 6))
-    sns.boxplot(x='p_change', y='normalized_rf', hue='method', data=melt_df, palette="Set2")
-    sns.stripplot(x='p_change', y='normalized_rf', hue='method', color='white', data=melt_df, dodge=True, alpha=0.3,
-                  palette="Set2",
-                  legend=False)
-    plt.title("rf distance vs. p_change")
-    plt.savefig(os.path.join(out_dir, out_paths[0]))
-    plt.close()
+    # Method renaming (safe replace)
+    method_labels = {
+        'rnj0': "RNJ0", 'nj-mid': "NJ-mid",
+        'bme': "balME", 'rnj1': "RNJ*", 'nj-root': "NJ-root"
+    }
+    tree_type_labels = {
+        'balanced': "Balanced",
+        'balanced-ultra': "Balanced Ultrametric",
+        'unbalanced': "Unbalanced"
+    }
+    df_plot = df.copy()
+    df_plot['method'] = df_plot['method'].map(method_labels).fillna(df_plot['method'])
+    df_plot['tree_type'] = df_plot['tree_type'].map(tree_type_labels).fillna(df_plot['tree_type'])
 
-    # plot rf vs n_cells (boxplot and swarmplot)
-    plt.figure(figsize=(10, 6))
-    sns.boxplot(x='n_cells', y='normalized_rf', hue='method', data=melt_df, palette="Set2", legend=False)
-    sns.stripplot(x='n_cells', y='normalized_rf', hue='method', color='white', data=melt_df, dodge=True, alpha=0.3,
-                  palette="Set2",
-                  legend=False)
-    plt.title("rf distance vs. number of cells")
-    plt.savefig(os.path.join(out_dir, out_paths[1]))
-    plt.close()
+    with PdfPages(pdf_path) as pdf:
+        # ---- Plot 1: RF vs p_change ----
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.boxplot(x='p_change', y='normalized_rf', hue='method', data=df_plot, palette="Set2", ax=ax)
+        sns.stripplot(x='p_change', y='normalized_rf', hue='method', data=df_plot,
+                      dodge=True, alpha=0.3, color='white', palette="Set2", legend=False, ax=ax)
+        ax.set_title("RF distance vs. p_change")
+        pdf.savefig(fig)
+        plt.close(fig)
 
-    n_methods = melt_df['method'].nunique()
+        # ---- Plot 2: RF vs n_cells ----
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.boxplot(x='n_cells', y='normalized_rf', hue='method', data=df_plot, palette="Set2", ax=ax)
+        sns.stripplot(x='n_cells', y='normalized_rf', hue='method', data=df_plot,
+                      dodge=True, alpha=0.3, color='white', palette="Set2", legend=False, ax=ax)
+        ax.set_title("RF distance vs. number of cells")
+        pdf.savefig(fig)
+        plt.close(fig)
 
-    melt_df = melt_df[melt_df['p_change'] < 0.1]
-    melt_df['CNAs'] = melt_df['p_change'] * N_SITES
-    melt_df['CNAs'] = melt_df['CNAs'].round().astype(int)
-    g = sns.catplot(x='n_cells', y='normalized_rf', hue='method', row='CNAs', col='is_ultrametric',
-                    data=melt_df, kind='box', height=2, aspect=2, palette="Set2", margin_titles=True)
-    g.set_axis_labels("N", "Normalized RF")
-    g.set_titles("#CNAs = {row_name}")
-    sns.move_legend(g, title=None, loc='lower center', ncol=n_methods, frameon=False, bbox_to_anchor=(0.5, -0.05))
-    # place legend to the bottom right inside the figure and smaller
-    g.savefig(os.path.join(out_dir, f"rf_vs_n_cells_facet{suff}.png"), dpi=150)
+        # ---- Plot 3: Faceted view ----
+        df_facet = df_plot.copy()
+        df_facet['CNAs'] = (df_facet['p_change'] * N_SITES).round().astype(int)
 
-    return out_paths
+        g = sns.catplot(
+            x='n_cells', y='normalized_rf', hue='method',
+            row='CNAs', col='tree_type', data=df_facet,
+            kind='box', height=2, aspect=2, palette="Set2", margin_titles=True
+        )
+        g.set_axis_labels("N", "Normalized RF")
+        g.set_titles(row_template="#CNAs = {row_name}", col_template="{col_name} Tree")
+        sns.move_legend(g, title=None, loc='lower center',
+                        ncol=df_facet['method'].nunique(),
+                        frameon=False, bbox_to_anchor=(0.5, -0.05))
+
+        # Save entire FacetGrid to PDF
+        pdf.savefig(g.figure)
+        plt.close(g.figure)
+
+    return pdf_path
 
 
 def plot_cell_cn_profiles(cnp, title="", outfile=None):
@@ -217,59 +284,55 @@ def plot_cell_cn_tree(tree: Tree, cnp, title="", outfile=None):
     plt.close(g['fig'])
 
 
-def benchmark_tree_inference(dist_matrix, true_tree, n, p, seed, max_l, is_ultrametric, methods=None, root_dist=None):
+def build_tree(dist_matrix, taxon_namespace, method='rnj0'):
+    match method:
+        case 'nj-mid':
+            return neighbor_joining(dist_matrix, taxon_namespace)
+        case 'bme':
+            return fast_me(dist_matrix, taxon_namespace)
+        case 'rnj0':
+            return cellmates_infer(dist_matrix, taxon_namespace)
+        case 'rnj1':
+            return cellmates_rnj_infer(dist_matrix, taxon_namespace)
+        case 'nj-root':
+            return std_njx(dist_matrix, taxon_namespace)
+        case _:
+            raise ValueError(f"Unknown method: {method}")
+
+
+def benchmark_method(dist_matrix, true_tree, n, p, seed, tree_type, method) -> dict:
+    print(f"Running method: {method}")
+    max_l = true_tree.max_distance_from_root()
+    start = time.time()
+    tree = build_tree(dist_matrix, true_tree.taxon_namespace, method=method)
+    elapsed_time = time.time() - start
+    rf = normalized_rf_distance(true_tree, tree)
+    print(f"{method} tree:")
+    tree.print_plot(plot_metric='length')
+    row = {
+        "n_cells": n,
+        "p_change": p,
+        "seed": seed,
+        "method": method,
+        "normalized_rf": rf,
+        'time': elapsed_time,
+        'max_length': max_l,
+        'max_p': p_from_l(max_l, N_STATES),
+        'tree_type': tree_type
+    }
+    return row
+
+
+def benchmark_tree_inference(dist_matrix, true_tree, n, p, seed, tree_type, methods=None):
     if methods is None:
-        methods = ['cellmates', 'nj', 'bme', 'rnj', 'njx']
+        # all methods
+        methods = ['bme', 'rnj0', 'rnj1', 'nj-mid', 'nj-root']
     rows = []
-    rf = {}
-    times = {}
-    if 'nj' in methods:
-        start = time.time()
-        nj_tree = neighbor_joining(dist_matrix, true_tree.taxon_namespace)
-        times['nj'] = time.time() - start
-        rf['nj'] = normalized_rf_distance(true_tree, nj_tree)
-        print("NJ-mid tree:")
-        nj_tree.print_plot(plot_metric='length')
-        print(f"NJ normalized RF: {rf['nj']:.4f}")
-
-    if 'bme' in methods:
-        start = time.time()
-        bme_tree = fast_me(dist_matrix, true_tree.taxon_namespace, suffix=f'_ultra')
-        times['bme'] = time.time() - start
-        rf['bme'] = normalized_rf_distance(true_tree, bme_tree)
-        print(f"balME normalized RF: {rf['bme']:.4f}")
-
-    if 'cellmates' in methods:
-        start = time.time()
-        cellmates_tree = cellmates_infer(dist_matrix, true_tree.taxon_namespace)
-        times['cellmates'] = time.time() - start
-        rf['cellmates'] = normalized_rf_distance(true_tree, cellmates_tree)
-        print(f"Cellmates normalized RF: {rf['cellmates']:.4f}")
-
-    if 'rnj' in methods:
-        start = time.time()
-        rnj_tree = cellmates_rnj_infer(dist_matrix, true_tree.taxon_namespace)
-        times['rnj'] = time.time() - start
-        rf['rnj'] = normalized_rf_distance(true_tree, rnj_tree)
-        print(f"Rooted NJ normalized RF: {rf['rnj']:.4f}")
-
-    if 'njx' in methods:
-        start = time.time()
-        std_nj_tree = std_njx(dist_matrix, true_tree.taxon_namespace, root_dist=root_dist)
-        times['njx'] = time.time() - start
-        print("True tree:")
-        true_tree.print_plot(plot_metric='length')
-        rf['njx'] = normalized_rf_distance(true_tree, std_nj_tree)
-        print("NJ-root tree:")
-        std_nj_tree.print_plot(plot_metric='length')
-        print(f"Standard NJ normalized RF: {rf['njx']:.4f}")
-
-    ## record results
-    for method, rf_value in rf.items():
-        rows.append(
-            {"n_cells": n, "p_change": p, "seed": seed, "method": method, "normalized_rf": rf_value,
-             'time': times[method],
-             'max_length': max_l, 'max_p': p_from_l(max_l, N_STATES), 'is_ultrametric': is_ultrametric})
+    print("True tree:")
+    true_tree.print_plot(plot_metric='length')
+    for m in methods:
+        row = benchmark_method(dist_matrix, true_tree, n, p, seed, tree_type, m)
+        rows.append(row)
     return rows
 
 
@@ -282,10 +345,12 @@ def main():
     # p_changes = [0.01, 0.05, 0.1, 0.2, 0.3]
     # p_changes = [0.01, 0.02, 0.05, 0.1, 0.2]
     p_changes = [0.1]
-    num_seeds = 10
-    out_dir = "rf_benchmark_plots_new"
+    methods = ['nj-mid', 'rnj0', 'nj-root']
+    tree_types = ['unbalanced']
+    num_seeds = 2
+    out_dir = "../../../../experiments/rf_benchmark_plots_new"
     # df_path = out_dir + "/tab.csv"
-    df_path = out_dir + "/tab.csv.test"
+    df_path = out_dir + "/tab.csv"
     rows = []
     df_found = False
     results_df = None
@@ -299,37 +364,22 @@ def main():
     for n in n_cells:
         for p in p_changes:
             for seed in range(num_seeds):
-                for ultra in [True]:
+                for tree_type in ['balanced', 'balanced-ultra', 'unbalanced']:
                     ## simulate tree and data
-                    print(f"Simulating n={n}, p_change={p}, seed={seed}, ultrametric={ultra}")
+                    print(f"Simulating n={n}, p_change={p}, seed={seed}, tree_type={tree_type}")
                     np.random.seed(seed)
-                    if not ultra:
-                        true_tree, cnp = simulate_tree(n, p)
-                    else:
-                        true_tree, cnp = simulate_tree_ultra(n, p)
-                    max_l = true_tree.max_distance_from_root()
+                    true_tree, cnp = simulate_tree(n, p, tree_type=tree_type)
                     if seed == 0:
                         true_tree.print_plot(plot_metric='length')
-                        print(f"leaves cnp[:10, :10]:\n{cnp[:min(10, n), :20]}")
-                        print("Max length: ", max_l, " -> p=", p_from_l(max_l, N_STATES))
+                        # print(f"leaves cnp[:10, :10]:\n{cnp[:min(10, n), :20]}")
+                        # print("Max length: ", max_l, " -> p=", p_from_l(max_l, N_STATES))
                     dist_matrix = compute_triplet_distance_matrix(true_tree, cnp, n)
                     root_dist = l_from_p(np.array(cn_changes_from_healthy(cnp[:n])) / N_SITES, N_STATES)
-                    print("cell-cell distances (direct):\n")
-                    print(root_dist)
-                    print("cell-root distances (l0 + l1):\n")
-                    print(dist_matrix[:, :, 0] + dist_matrix[:, :, 1])
-                    print("cell-root distances (l0 + l2):\n")
-                    print(dist_matrix[:, :, 0] + dist_matrix[:, :, 2])
-                    # print("max dist: ", np.max(dist_matrix), " should be <= l(1 - 1/K)", l_from_p(1 - (1 / (N_STATES-1)), N_STATES))
-
-                    ## plot cell cn profiles
-                    # plot_cell_cn_profiles(cnp[:n], title=f"Cell CN profiles (n={n}, p={p}, seed={seed})", outfile=out_dir + f"/cell_cn_profiles_n{n}_p{p}_s{seed}.png")
-                    # plot_cell_cn_tree(true_tree, cnp[:n], title=f"True cell CN tree (n={n}, p={p}, seed={seed})", outfile=out_dir + f"/true_cell_cn_tree_n{n}_p{p}_s{seed}.png")
-
                     ## infer trees and compute RF distances
-                    rows = rows + benchmark_tree_inference(dist_matrix, true_tree, n, p, seed, max_l, ultra,
-                                                           methods=['cellmates', 'nj', 'rnj', 'njx'],
-                                                           root_dist=root_dist)
+                    rows = rows + benchmark_tree_inference(dist_matrix, true_tree, n, p, seed, tree_type=tree_type, methods=methods)
+                    # print rf
+                    print(pd.DataFrame(rows).tail(len(['cellmates', 'nj', 'rnj', 'njx']))[
+                              ['method', 'normalized_rf', 'time']])
             # print avg times and rf
             avg_times = pd.DataFrame(rows).groupby('method')['time'].mean()
             avg_rf = pd.DataFrame(rows).groupby('method')['normalized_rf'].mean()
@@ -343,7 +393,7 @@ def main():
     results_df.to_csv(df_path, index=False)
     print("Results saved to ", df_path)
     # plot comparison
-    out_dirs = plot_comparison(results_df, suff="test", out_dir=out_dir)
+    out_dirs = plot_comparison(results_df, os.path.join(out_dir, "rf_comparison_plots.pdf"))
     print(f"Plots saved to {out_dirs}")
 
 

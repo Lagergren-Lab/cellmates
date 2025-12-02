@@ -24,7 +24,7 @@ from cellmates.utils.tree_utils import convert_networkx_to_dendropy, random_bina
     get_ctr_table_int
 from cellmates.utils.math_utils import l_from_p, p_from_l, compute_cn_changes
 
-from cellmates.inference.em import build_tree
+from cellmates.inference.em import rooted_nj0
 
 class EMTestCase(unittest.TestCase):
 
@@ -101,7 +101,7 @@ class EMTestCase(unittest.TestCase):
         ctr_table = jcb_em_ctrtable(obs, n_states=5)
         print(ctr_table)
         # build tree
-        em_tree = build_tree(ctr_table)
+        em_tree = rooted_nj0(ctr_table)
         print(em_tree)
         nx.write_network_text(em_tree, sources=['r'])
         assert nx.is_tree(em_tree)
@@ -149,7 +149,7 @@ class EMTestCase(unittest.TestCase):
 
         print(ctr_table[..., 0])
 
-        em_tree = build_tree(ctr_table)
+        em_tree = rooted_nj0(ctr_table)
         # relabel tree nodes with data taxon labels
         nx.write_network_text(em_tree, sources=['r'])
         labels_mapping = {n.label: n.label for n in data['tree'].nodes() if n != data['tree'].seed_node}
@@ -945,7 +945,7 @@ class EMTestCase(unittest.TestCase):
         ctr_table = get_ctr_table_int(tree)
 
         # rebuild tree
-        nx_tree = build_tree(ctr_table)
+        nx_tree = rooted_nj0(ctr_table)
         new_dpy_tree = convert_networkx_to_dendropy(nx_tree, taxon_namespace=tree.taxon_namespace, edge_length='length')
         print("--- Rebuilt tree ---")
         print(f'txnsp: {new_dpy_tree.taxon_namespace}')

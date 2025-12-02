@@ -112,7 +112,7 @@ def run_cellmates(x, K, cellmates_out_dir, num_proc=1):
     em_alg = EM(K, obs_model, evo_model)
     em_alg.fit(x, max_iter=20, rtol=1e-4, num_processors=num_proc)
     distances = em_alg.distances
-    CM_tree_nx = neighbor_joining.build_tree(distances)
+    CM_tree_nx = neighbor_joining.rooted_nj0(distances)
     nw_tree = tree_utils.nxtree_to_newick(CM_tree_nx)
 
     # Save Cellmates tree
@@ -151,7 +151,7 @@ def run_cellmates_ideal(cnps, K, haplotype_aware, true_tree: dpy.Tree,
         loglikelihoods[(u, v)] = loglik
 
     # Build tree from distances
-    CM_tree_nx = neighbor_joining.build_tree(distances)
+    CM_tree_nx = neighbor_joining.rooted_nj0(distances)
     CM_tree_dp = tree_utils.convert_networkx_to_dendropy(CM_tree_nx,
                                                          taxon_namespace=true_tree.taxon_namespace)
     tree_utils.label_tree(CM_tree_dp)

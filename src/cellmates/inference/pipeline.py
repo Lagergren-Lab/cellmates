@@ -6,7 +6,7 @@ import anndata
 from tqdm import tqdm
 
 from cellmates.common_helpers.cnasim_data import correct_readcounts
-from cellmates.inference.neighbor_joining import build_tree
+from cellmates.inference.neighbor_joining import rooted_nj0
 from cellmates.models.obs import NormalModel, JitterCopy, ObsModel
 from cellmates.models.evo import JCBModel, EvoModel
 from cellmates.inference.em import EM, estimate_theta_from_cn
@@ -294,7 +294,7 @@ def run_inference_pipeline(
     )
 
     logger.info("Building tree from distance matrix...")
-    tree = build_tree(em.distances)
+    tree = rooted_nj0(em.distances)
     tree_relab = write_cells_to_tree(tree, cell_names=cell_names)  # relabel tree with cell names and put ancestor names
     # save before predicting cn profiles (which may take time)
     res_paths = save_results(em, out_path, cell_names, tree_relab)

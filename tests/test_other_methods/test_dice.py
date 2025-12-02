@@ -139,10 +139,10 @@ class DiceAPITestCase(unittest.TestCase):
             distances_cm_inf = em_alg.distances
 
         # Build tree from inferred distances
-        CM_tree_nx = neighbor_joining.build_tree(distances)
+        CM_tree_nx = neighbor_joining.rooted_nj0(distances)
         CM_tree_dp = tree_utils.convert_networkx_to_dendropy(CM_tree_nx, taxon_namespace=true_tree.taxon_namespace)
         if run_CM_inference:
-            CM_inf_tree_nx = neighbor_joining.build_tree(distances_cm_inf)
+            CM_inf_tree_nx = neighbor_joining.rooted_nj0(distances_cm_inf)
             CM_inf_tree_dp = tree_utils.convert_networkx_to_dendropy(CM_inf_tree_nx,
                                                                      edge_length='length',
                                                                      taxon_namespace=true_tree.taxon_namespace)

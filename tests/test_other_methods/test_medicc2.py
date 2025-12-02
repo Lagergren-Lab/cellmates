@@ -143,7 +143,7 @@ class Medicc2APITestCase(unittest.TestCase):
             loglikelihoods[(u, v)] = loglik
 
         # Build tree from inferred distances
-        CM_tree_nx = neighbor_joining.build_tree(distances)
+        CM_tree_nx = neighbor_joining.rooted_nj0(distances)
         CM_tree_dp = tree_utils.convert_networkx_to_dendropy(CM_tree_nx, taxon_namespace=true_tree.taxon_namespace)
 
         # Compare trees

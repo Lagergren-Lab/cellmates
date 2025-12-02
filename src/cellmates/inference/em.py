@@ -14,7 +14,7 @@ from dendropy.calculate.treecompare import (
 from scipy.special import comb
 from tqdm import tqdm
 
-from cellmates.inference.neighbor_joining import build_tree
+from cellmates.inference.neighbor_joining import rooted_nj0
 from cellmates.models.obs import ObsModel, NormalModel, PoissonModel, JitterCopy
 from cellmates.simulation.datagen import rand_dataset
 
@@ -556,7 +556,7 @@ if __name__ == '__main__':
     data['tree'].print_plot(plot_metric='length')
 
     # build tree with em table
-    nx_em_tree = build_tree(ctr_table)
+    nx_em_tree = rooted_nj0(ctr_table)
     em_tree = convert_networkx_to_dendropy(nx_em_tree, taxon_namespace=data['tree'].taxon_namespace,
                                            edge_length='length')
     print("EM tree")

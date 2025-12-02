@@ -9,7 +9,7 @@ import dendropy as dpy
 import numpy as np
 
 from cellmates.inference.em import jcb_em_alg
-from cellmates.inference.neighbor_joining import build_tree
+from cellmates.inference.neighbor_joining import rooted_nj0
 from cellmates.utils.tree_utils import convert_networkx_to_dendropy
 
 
@@ -84,7 +84,7 @@ def run(data_path, num_processors=4, **kwargs):
 
     # build tree from EM output
     print("Building tree from EM output")
-    nx_em_tree = build_tree(ctr_table=distances_tensor)
+    nx_em_tree = rooted_nj0(ctr_table=distances_tensor)
     em_tree = convert_networkx_to_dendropy(nx_em_tree, taxon_namespace=true_tree.taxon_namespace, edge_length='length')
     # compare trees (draw and compute RF distance)
     print("Comparing trees")
