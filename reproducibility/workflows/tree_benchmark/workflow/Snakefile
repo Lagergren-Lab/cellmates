@@ -17,8 +17,8 @@ rule all:
 
 rule simulate_data:
     output:
-        dist_mat=temp(os.path.join(results_dir, "dm_n{n}_p{p}_s{s}_{t}.npy")),
-        tree_nwk=temp(os.path.join(results_dir, "tree_n{n}_p{p}_s{s}_{t}.nwk"))
+        dist_mat=temp(os.path.join(results_dir, "partials", "dm_n{n}_p{p}_s{s}_{t}.npy")),
+        tree_nwk=temp(os.path.join(results_dir, "partials", "tree_n{n}_p{p}_s{s}_{t}.nwk"))
     conda:
         "cellmates"
     params:
@@ -30,10 +30,10 @@ rule simulate_data:
 
 rule run_method:
     input:
-        dist_mat=os.path.join(results_dir, "dm_n{n}_p{p}_s{s}_{t}.npy"),
-        tree_nwk=os.path.join(results_dir, "tree_n{n}_p{p}_s{s}_{t}.nwk")
+        dist_mat=os.path.join(results_dir, "partials", "dm_n{n}_p{p}_s{s}_{t}.npy"),
+        tree_nwk=os.path.join(results_dir, "partials", "tree_n{n}_p{p}_s{s}_{t}.nwk")
     output:
-        os.path.join(results_dir, "res_n{n}_p{p}_s{s}_{m}_{t}.csv")
+        os.path.join(results_dir, "partials", "res_n{n}_p{p}_s{s}_{m}_{t}.csv")
     conda:
         "cellmates"
     params:
@@ -46,7 +46,7 @@ rule run_method:
 
 rule merge_and_plot:
     input:
-        expand(os.path.join(results_dir, "res_n{n}_p{p}_s{s}_{m}_{t}.csv"),
+        expand(os.path.join(results_dir, "partials", "res_n{n}_p{p}_s{s}_{m}_{t}.csv"),
                n=n_cells,
                p=p_change,
                s=seeds,

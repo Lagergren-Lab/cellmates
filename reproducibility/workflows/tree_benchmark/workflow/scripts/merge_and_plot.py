@@ -6,12 +6,9 @@ def main(input_list, output_csv_file, output_plot_file):
     # input_list: list of csv files to merge
     merged_res = []
     for input_file in input_list:
-        with open(input_file, 'r') as f:
-            header = f.readline().strip().split(',')
-            values = f.readline().strip().split(',')
-            res_dict = {header[i]: values[i] for i in range(len(header))}
-            merged_res.append(res_dict)
-    df = pd.DataFrame(merged_res)
+        df = pd.read_csv(input_file)
+        merged_res.append(df)
+    df = pd.concat(merged_res, ignore_index=True)
     # save to csv
     df.to_csv(output_csv_file, index=False)
 
