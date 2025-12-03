@@ -123,7 +123,7 @@ def rooted_nj0(ctr_table: np.ndarray, edge_attr='length', internal_indexing=Fals
     return em_tree
 
 
-@numba.njit(nopython=True, fastmath=True)
+@numba.njit(fastmath=True)
 def rooted_nj_minq(tdm_, sums_, n):
     """
     Find the maximum value in the Q-matrix for rooted NJ.
