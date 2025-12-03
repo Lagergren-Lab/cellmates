@@ -6,8 +6,6 @@ from importlib.metadata import distributions
 import numpy as np
 import scipy.special as sp
 
-from pomegranate.hmm import DenseHMM
-from pomegranate.distributions import Normal
 from cellmates.utils.math_utils import l_from_p
 
 
@@ -105,6 +103,8 @@ def _forward_likelihood_pomegranate(log_emissions, trans_mat, start_prob):
     log_p : float
         Log likelihood of the observed sequence
     """
+    from pomegranate.hmm import DenseHMM
+    from pomegranate.distributions import Normal
     n_sites, n_states, _ = log_emissions.shape
     log_emissions_3D = pmg_convert_emissions(log_emissions)
     trans_mat_2D = trans_mat.reshape((n_states ** 3, n_states ** 3))
@@ -122,6 +122,8 @@ def _forward_backward_pomegranate(log_emissions, trans_mat, start_prob, debug=Fa
     Parameters
     ----------
     """
+    from pomegranate.hmm import DenseHMM
+    from pomegranate.distributions import Normal
     n_sites, n_states, _ = log_emissions.shape
     log_emissions_3D = pmg_convert_emissions(log_emissions)
     trans_mat_2D = trans_mat.reshape((n_states ** 3, n_states ** 3))
@@ -184,6 +186,8 @@ def _backward_pass_broadcast(log_emissions, trans_mat, normalize=True):
     return beta
 
 def _backward_pass_pomegranate(log_emissions, trans_mat):
+    from pomegranate.hmm import DenseHMM
+    from pomegranate.distributions import Normal
     n_sites, n_states, _ = log_emissions.shape
     log_emissions_3D = pmg_convert_emissions(log_emissions)
     trans_mat_2D = trans_mat.reshape((n_states ** 3, n_states ** 3))
@@ -234,6 +238,8 @@ def viterbi_decode_pomegranate(log_emissions, trans_mat, start_prob) -> np.ndarr
     path : np.ndarray
         Viterbi path of shape (n_sites, n_states, n_states, n_states)
     """
+    from pomegranate.hmm import DenseHMM
+    from pomegranate.distributions import Normal
     n_sites, n_states, _ = log_emissions.shape
     log_emissions_3D = pmg_convert_emissions(log_emissions)
     start_prob_1D = start_prob.flatten()
