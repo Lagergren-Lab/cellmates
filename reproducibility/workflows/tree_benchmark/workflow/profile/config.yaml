@@ -1,6 +1,9 @@
 executor: slurm
-jobs: 32
-cores: 32
+jobs: 100
+cores: 100
+
+use-conda: true
+conda-prefix: "/proj/sc_ml/shared/envs"
 
 default-resources:
   mem_mb_per_cpu: 4000

@@ -1,0 +1,20 @@
+name: tmp
+channels:
+  - conda-forge
+  - bioconda
+  - nodefaults
+dependencies:
+  - python=3.12
+  - anndata
+  - dendropy
+  - scikit-bio
+  - ca-certificates
+  - openssl
+  - bio
+  - fastme
+  - certifi
+  - seaborn
+  - networkx
+  - numba
+  - scikit-learn
+prefix: /proj/sc_ml/shared/envs/tmp

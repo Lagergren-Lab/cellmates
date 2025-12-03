@@ -4,6 +4,7 @@ on simulated data.
 """
 import os
 import time
+import random
 
 import anndata
 import dendropy
@@ -15,11 +16,11 @@ from skbio.tree import nj
 from Bio import Phylo
 import subprocess
 import io
+#import scgenome.plotting as pl
 
 import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
-import scgenome.plotting as pl
 
 from cellmates.inference.neighbor_joining import rooted_nj0, std_nj_root, rooted_nj, get_root_dist_from_tripledist, \
     extend_dm
@@ -123,7 +124,7 @@ def fast_me(dist_matrix, taxon_namespace, suffix=""):
     # run balanced minimum evolution (fast ME)
     # timestamp to make unique file names
     if suffix == "":
-        suffix = f'_{int(time.time() * 1000)}'
+        suffix = f'_{random.randint(0,1000000)}'
     file_name = f'dist_mat{suffix}.PHYLIP'
     save_distmatrix(dist_matrix, file_name)
     tree_prefix = f'tree{suffix}.nwk'
@@ -249,39 +250,39 @@ def plot_comparison(df, pdf_path):
     return pdf_path
 
 
-def plot_cell_cn_profiles(cnp, title="", outfile=None):
-    fig, ax = plt.subplots(1, 1, figsize=(6, 6))
-    cn_colors = pl.cn_colors.map_cn_colors(cnp)
-    ax.imshow(cn_colors, aspect="auto", interpolation="none")
-    ax.set_ylabel(f"cells")
-    ax.set_xlabel(f"bins")
-    ax.set_xticks([])
-    ax.set_yticks([])
-    fig.tight_layout()
-    if title:
-        fig.suptitle(title)
-    if outfile is not None:
-        fig.savefig(outfile, dpi=300)
-    plt.close(fig)
+# def plot_cell_cn_profiles(cnp, title="", outfile=None):
+#     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
+#     cn_colors = pl.cn_colors.map_cn_colors(cnp)
+#     ax.imshow(cn_colors, aspect="auto", interpolation="none")
+#     ax.set_ylabel(f"cells")
+#     ax.set_xlabel(f"bins")
+#     ax.set_xticks([])
+#     ax.set_yticks([])
+#     fig.tight_layout()
+#     if title:
+#         fig.suptitle(title)
+#     if outfile is not None:
+#         fig.savefig(outfile, dpi=300)
+#     plt.close(fig)
 
 
-def plot_cell_cn_tree(tree: Tree, cnp, title="", outfile=None):
-    ad = anndata.AnnData(X=cnp,
-                         var=pd.DataFrame(dict(
-                             chr=['1'] * cnp.shape[1],
-                             start=range(cnp.shape[1]),
-                             end=range(1, cnp.shape[1] + 1))
-                         ))
-    ad.obs_names = [str(i) for i in range(cnp.shape[0])]
-    for n in tree.preorder_internal_node_iter():
-        n.label = None
-    biotree = Phylo.read(io.StringIO(tree.as_string(schema="newick")), "newick")
-    g = pl.plot_cell_cn_matrix_fig(ad, tree=biotree, layer_name=None)
-
-    g['fig'].suptitle(title)
-    if outfile is not None:
-        g['fig'].savefig(outfile, dpi=300)
-    plt.close(g['fig'])
+# def plot_cell_cn_tree(tree: Tree, cnp, title="", outfile=None):
+#     ad = anndata.AnnData(X=cnp,
+#                          var=pd.DataFrame(dict(
+#                              chr=['1'] * cnp.shape[1],
+#                              start=range(cnp.shape[1]),
+#                              end=range(1, cnp.shape[1] + 1))
+#                          ))
+#     ad.obs_names = [str(i) for i in range(cnp.shape[0])]
+#     for n in tree.preorder_internal_node_iter():
+#         n.label = None
+#     biotree = Phylo.read(io.StringIO(tree.as_string(schema="newick")), "newick")
+#     g = pl.plot_cell_cn_matrix_fig(ad, tree=biotree, layer_name=None)
+# 
+#     g['fig'].suptitle(title)
+#     if outfile is not None:
+#         g['fig'].savefig(outfile, dpi=300)
+#     plt.close(g['fig'])
 
 
 def build_tree(dist_matrix, taxon_namespace, method='rnj0'):

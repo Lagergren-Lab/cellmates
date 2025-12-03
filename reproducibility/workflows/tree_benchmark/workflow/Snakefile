@@ -1,4 +1,4 @@
-configfile: "config.yaml"
+configfile: "config/config.yaml"
 
 import os
 
@@ -20,7 +20,7 @@ rule simulate_data:
         dist_mat=temp(os.path.join(results_dir, "partials", "dm_n{n}_p{p}_s{s}_{t}.npy")),
         tree_nwk=temp(os.path.join(results_dir, "partials", "tree_n{n}_p{p}_s{s}_{t}.nwk"))
     conda:
-        "cellmates"
+        "envs/cellmates-min.yaml"
     params:
         n_cells=lambda wildcards: int(wildcards.n),
         p_change=lambda wildcards: float(wildcards.p),
@@ -35,7 +35,7 @@ rule run_method:
     output:
         os.path.join(results_dir, "partials", "res_n{n}_p{p}_s{s}_{m}_{t}.csv")
     conda:
-        "cellmates"
+        "envs/cellmates-min.yaml"
     params:
         n_cells=lambda wildcards: int(wildcards.n),
         p_change=lambda wildcards: float(wildcards.p),
@@ -56,5 +56,5 @@ rule merge_and_plot:
         csv_file=os.path.join(results_dir, "res_merged.csv"),
         plot_file=os.path.join(results_dir, "plots.pdf")
     conda:
-        "cellmates"
+        "envs/cellmates-min.yaml"
     script: "scripts/merge_and_plot.py"
