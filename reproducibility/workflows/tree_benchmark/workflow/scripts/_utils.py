@@ -188,11 +188,7 @@ def std_njx_phylo(trip_dist, taxon_namespace, root_dist=None):
     dpy_tree.is_rooted = True
     return dpy_tree
 
-
-def plot_comparison(df, pdf_path):
-    """Generate comparison plots and store them in a single PDF."""
-
-    sns.set_theme(style="whitegrid")
+def relabel_df(df):
 
     # Method renaming (safe replace)
     method_labels = {
@@ -207,6 +203,13 @@ def plot_comparison(df, pdf_path):
     df_plot = df.copy()
     df_plot['method'] = df_plot['method'].map(method_labels).fillna(df_plot['method'])
     df_plot['tree_type'] = df_plot['tree_type'].map(tree_type_labels).fillna(df_plot['tree_type'])
+    return df_plot
+
+def plot_analysis_pdf(df, pdf_path):
+    """Generate comparison plots and store them in a single PDF."""
+    sns.set_theme(style="whitegrid")
+
+    df_plot = relabel_df(df)
 
     with PdfPages(pdf_path) as pdf:
         # ---- Plot 1: RF vs p_change ----
@@ -228,26 +231,29 @@ def plot_comparison(df, pdf_path):
         plt.close(fig)
 
         # ---- Plot 3: Faceted view ----
-        df_facet = df_plot.copy()
-        df_facet['CNAs'] = (df_facet['p_change'] * N_SITES).round().astype(int)
-
-        g = sns.catplot(
-            x='n_cells', y='normalized_rf', hue='method',
-            row='CNAs', col='tree_type', data=df_facet,
-            kind='box', height=2, aspect=2, palette="Set2", margin_titles=True
-        )
-        g.set_axis_labels("N", "Normalized RF")
-        g.set_titles(row_template="#CNAs = {row_name}", col_template="{col_name} Tree")
-        sns.move_legend(g, title=None, loc='lower center',
-                        ncol=df_facet['method'].nunique(),
-                        frameon=False, bbox_to_anchor=(0.5, -0.05))
-
+        g = plot_comparison(df_plot)
         # Save entire FacetGrid to PDF
         pdf.savefig(g.figure)
         plt.close(g.figure)
 
     return pdf_path
 
+def plot_comparison(df):
+    df_plot = relabel_df(df)
+    df_facet = df_plot.copy()
+    df_facet['CNAs'] = (df_facet['p_change'] * N_SITES).round().astype(int)
+
+    g = sns.catplot(
+        x='n_cells', y='normalized_rf', hue='method',
+        row='CNAs', col='tree_type', data=df_facet,
+        kind='box', height=2, aspect=2, palette="Set2", margin_titles=True
+    )
+    g.set_axis_labels("N", "Normalized RF")
+    g.set_titles(row_template="#CNAs = {row_name}", col_template="{col_name} Tree")
+    sns.move_legend(g, title=None, loc='lower center',
+                    ncol=df_facet['method'].nunique(),
+                    frameon=False, bbox_to_anchor=(0.5, -0.05))
+    return g
 
 # def plot_cell_cn_profiles(cnp, title="", outfile=None):
 #     fig, ax = plt.subplots(1, 1, figsize=(6, 6))
@@ -394,7 +400,7 @@ def main():
     results_df.to_csv(df_path, index=False)
     print("Results saved to ", df_path)
     # plot comparison
-    out_dirs = plot_comparison(results_df, os.path.join(out_dir, "rf_comparison_plots.pdf"))
+    out_dirs = plot_analysis_pdf(results_df, os.path.join(out_dir, "rf_comparison_plots.pdf"))
     print(f"Plots saved to {out_dirs}")
 
 
