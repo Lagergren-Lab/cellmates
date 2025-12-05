@@ -33,6 +33,19 @@ from cellmates.utils.tree_utils import convert_dendropy_to_networkx, normalized_
 N_STATES = 8
 N_SITES = 1000
 
+TREE_TYPE_NAME = {
+    'balanced': "Non-ultrametric",
+    'balanced-ultra': "Ultrametric",
+    'unbalanced': "Long-root"
+}
+
+METHOD_NAME = {
+    'nj-mid': "NJ-mid",
+    'bme': "balME",
+    'rnj0': "RNJ0",
+    'rnj1': "RNJ*",
+    'nj-root': "NJ-root"
+}
 
 def simulate_tree(n_cells, p_change, tree_type='balanced'):
     # simulate tree and data
@@ -195,15 +208,9 @@ def plot_comparison(df, pdf_path):
     sns.set_theme(style="whitegrid")
 
     # Method renaming (safe replace)
-    method_labels = {
-        'rnj0': "RNJ0", 'nj-mid': "NJ-mid",
-        'bme': "balME", 'rnj1': "RNJ*", 'nj-root': "NJ-root"
-    }
-    tree_type_labels = {
-        'balanced': "Balanced",
-        'balanced-ultra': "Balanced Ultrametric",
-        'unbalanced': "Unbalanced"
-    }
+    method_labels = METHOD_NAME
+
+    tree_type_labels = TREE_TYPE_NAME
     df_plot = df.copy()
     df_plot['method'] = df_plot['method'].map(method_labels).fillna(df_plot['method'])
     df_plot['tree_type'] = df_plot['tree_type'].map(tree_type_labels).fillna(df_plot['tree_type'])
