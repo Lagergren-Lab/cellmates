@@ -12,7 +12,7 @@ def main(input_list, output_csv_file, output_plot_file):
     # save to csv
     df.to_csv(output_csv_file, index=False)
 
-    plot_comparison(df, output_plot_file)
+    plot_analysis_pdf(df, output_plot_file)
     return
 
 
