@@ -13,7 +13,12 @@ results_dir = config["results_dir"]
 rule all:
     input:
         os.path.join(results_dir, "res_merged.csv"),
-        os.path.join(results_dir, "plots.pdf")
+        os.path.join(results_dir, "plots.pdf"),
+        expand(os.path.join(results_dir, "plots", "dataset_n{n}_p{p}_{t}.png"),
+               n=n_cells,
+               p=p_change,
+               t=tree_types
+        )
 
 rule simulate_data:
     output:
@@ -27,6 +32,20 @@ rule simulate_data:
         seed=lambda wildcards: int(wildcards.s),
         tree_type=lambda wildcards: wildcards.t
     script: "scripts/simulate_data.py"
+
+# only plot one example dataset for each parameter setting (seed=0)
+rule plot_dataset:
+    output:
+        os.path.join(results_dir, "plots", "dataset_n{n}_p{p}_{t}.png")
+    conda:
+        "envs/cellmates-min-scgenome.yaml"
+        # "cellmates"
+    params:
+        n_cells=lambda wildcards: int(wildcards.n),
+        p_change=lambda wildcards: float(wildcards.p),
+        seed=0,
+        tree_type=lambda wildcards: wildcards.t,
+    script: "scripts/plot_dataset.py"
 
 rule run_method:
     input:

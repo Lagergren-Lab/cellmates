@@ -16,7 +16,6 @@ from skbio.tree import nj
 from Bio import Phylo
 import subprocess
 import io
-#import scgenome.plotting as pl
 
 import seaborn as sns
 import matplotlib.pyplot as plt
@@ -266,23 +265,24 @@ def plot_comparison(df, pdf_path):
 #     plt.close(fig)
 
 
-# def plot_cell_cn_tree(tree: Tree, cnp, title="", outfile=None):
-#     ad = anndata.AnnData(X=cnp,
-#                          var=pd.DataFrame(dict(
-#                              chr=['1'] * cnp.shape[1],
-#                              start=range(cnp.shape[1]),
-#                              end=range(1, cnp.shape[1] + 1))
-#                          ))
-#     ad.obs_names = [str(i) for i in range(cnp.shape[0])]
-#     for n in tree.preorder_internal_node_iter():
-#         n.label = None
-#     biotree = Phylo.read(io.StringIO(tree.as_string(schema="newick")), "newick")
-#     g = pl.plot_cell_cn_matrix_fig(ad, tree=biotree, layer_name=None)
-# 
-#     g['fig'].suptitle(title)
-#     if outfile is not None:
-#         g['fig'].savefig(outfile, dpi=300)
-#     plt.close(g['fig'])
+def plot_cell_cn_tree(tree: Tree, cnp, title="", outfile=None):
+    import scgenome.plotting as pl
+    ad = anndata.AnnData(X=cnp,
+                         var=pd.DataFrame(dict(
+                             chr=['1'] * cnp.shape[1],
+                             start=range(cnp.shape[1]),
+                             end=range(1, cnp.shape[1] + 1))
+                         ))
+    ad.obs_names = [str(i) for i in range(cnp.shape[0])]
+    for n in tree.preorder_internal_node_iter():
+        n.label = None
+    biotree = Phylo.read(io.StringIO(tree.as_string(schema="newick")), "newick")
+    g = pl.plot_cell_cn_matrix_fig(ad, tree=biotree, layer_name=None)
+
+    g['fig'].suptitle(title)
+    if outfile is not None:
+        g['fig'].savefig(outfile, dpi=300)
+    plt.close(g['fig'])
 
 
 def build_tree(dist_matrix, taxon_namespace, method='rnj0'):
